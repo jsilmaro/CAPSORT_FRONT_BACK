@@ -113,6 +113,16 @@ const login = async (req, res) => {
       });
     }
 
+    // IMPORTANT: Student login endpoint should ONLY accept student accounts
+    // Admin accounts must use the /auth/admin/login endpoint
+    if (user.role === 'admin') {
+      return res.status(403).json({
+        error: 'Access denied',
+        message: 'Admin accounts must use the admin login portal',
+        status: 403
+      });
+    }
+
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
@@ -129,7 +139,7 @@ const login = async (req, res) => {
     const { password: _, ...userWithoutPassword } = user;
 
     res.status(200).json({
-      message: `${user.role === 'admin' ? 'Admin' : 'Student'} login successful`,
+      message: 'Student login successful',
       token,
       user: userWithoutPassword,
       status: 200

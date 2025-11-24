@@ -48,7 +48,12 @@ export default function Login() {
       if (result.success) {
         navigate('/student/dashboard');
       } else {
-        setStudentError(result.error || 'Login failed');
+        // Check if error is about admin trying to use student login
+        if (result.error?.includes('Admin') || result.error?.includes('admin')) {
+          setStudentError('Admin accounts must use the Admin Login tab');
+        } else {
+          setStudentError(result.error || 'Login failed');
+        }
       }
     } catch (error) {
       setStudentError('An unexpected error occurred');
@@ -68,7 +73,12 @@ export default function Login() {
       if (result.success) {
         navigate('/admin/dashboard');
       } else {
-        setAdminError(result.error || 'Admin login failed');
+        // Provide clear error message for admin login failures
+        if (result.error?.includes('not found') || result.error?.includes('access denied')) {
+          setAdminError('Invalid admin credentials or access denied');
+        } else {
+          setAdminError(result.error || 'Admin login failed');
+        }
       }
     } catch (error) {
       setAdminError('An unexpected error occurred');
