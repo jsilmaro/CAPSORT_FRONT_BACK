@@ -45,3 +45,13 @@ model SavedProject {
 
   @@unique([userId, projectId])
 }
+
+model AboutContent {
+  id           Int      @id @default(autoincrement())
+  title        String
+  subtitle     String
+  mission      String   @db.Text
+  contactEmail String
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+}

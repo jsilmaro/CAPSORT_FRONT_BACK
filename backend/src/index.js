@@ -7,6 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const savedProjectRoutes = require('./routes/savedProjectRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const aboutRoutes = require('./routes/aboutRoutes');
 
 // Import security middleware
 const { generalLimiter, sanitizeInput, securityHeaders } = require('./middleware/security');
@@ -48,6 +49,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/saved-projects', savedProjectRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/about', aboutRoutes);
 
 // 404 handler for undefined routes
 app.use('*', (req, res) => {
