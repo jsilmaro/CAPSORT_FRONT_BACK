@@ -1,16 +1,111 @@
-# 🚀 CapSort Deployment Guide
+# 🚀 CapSort Monorepo Deployment Guide
+
+## 📁 Monorepo Structure
+
+This project is now organized as a monorepo with both frontend and backend in a single repository:
+
+```
+capsort-monorepo/
+├── frontend/          # React + TypeScript frontend
+├── backend/           # Node.js + Express backend
+├── package.json       # Monorepo scripts
+└── README.md
+```
 
 ## ✅ Pre-Deployment Checklist
 
 Both frontend and backend are ready for deployment:
 
-- ✅ **Frontend Build**: `npm run build` works successfully
+- ✅ **Frontend Build**: `npm run build:frontend` works successfully
 - ✅ **Backend Ready**: Node.js backend ready for deployment
 - ✅ **Authentication**: Fully integrated and working
 - ✅ **Database**: Neon PostgreSQL configured
 - ✅ **Environment Variables**: Configured for production
+- ✅ **Monorepo Setup**: Single repository with both projects
 
-## 📦 Frontend Deployment (Vercel)
+## 🚀 Deployment Options
+
+### Option 1: Vercel Monorepo (Recommended)
+
+Deploy both frontend and backend from the same repository using Vercel's monorepo support.
+
+#### Step 1: Push to GitHub
+```bash
+# Initialize git repository
+git init
+git add .
+git commit -m "Initial commit - CapSort monorepo ready for deployment"
+git branch -M main
+git remote add origin https://github.com/yourusername/capsort-monorepo.git
+git push -u origin main
+```
+
+#### Step 2: Deploy Backend to Vercel
+1. Go to [vercel.com](https://vercel.com) and click "New Project"
+2. Import your GitHub repository
+3. **Framework Preset**: Other
+4. **Root Directory**: `backend`
+5. **Build Command**: `npm run build`
+6. **Output Directory**: Leave empty (Node.js project)
+7. **Install Command**: `npm install`
+
+**Environment Variables for Backend**:
+```
+DATABASE_URL=postgresql://neondb_owner:npg_3HsnAPQYzBm9@ep-floral-salad-adu0nkbs-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+DIRECT_URL=postgresql://neondb_owner:npg_3HsnAPQYzBm9@ep-floral-salad-adu0nkbs-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+JWT_SECRET=b0a0eb521a4bef17d9fa3f30d28e13e833d1afc64205e2cdfca6a8cf4ecc7caa3601e49e58f9939a26bb58e99b088882813b89b4e8f42c6a19f73fd2887bd98b
+JWT_EXPIRES_IN=7d
+NODE_ENV=production
+CLIENT_URL=https://your-frontend-url.vercel.app
+```
+
+#### Step 3: Deploy Frontend to Vercel
+1. Create another Vercel project from the same repository
+2. **Framework Preset**: Vite
+3. **Root Directory**: `frontend`
+4. **Build Command**: `npm run build`
+5. **Output Directory**: `build`
+6. **Install Command**: `npm install`
+
+**Environment Variables for Frontend**:
+```
+VITE_API_URL=https://your-backend-url.vercel.app/api
+```
+
+#### Step 4: Update CORS Settings
+After both are deployed, update the backend's `CLIENT_URL` environment variable with the actual frontend URL.
+
+### Option 2: Separate Repositories
+
+If you prefer separate repositories:
+
+#### Frontend Repository
+```bash
+# Create frontend-only repository
+mkdir capsort-frontend
+cp -r frontend/* capsort-frontend/
+cd capsort-frontend
+git init
+git add .
+git commit -m "Frontend deployment ready"
+git remote add origin https://github.com/yourusername/capsort-frontend.git
+git push -u origin main
+```
+
+#### Backend Repository
+```bash
+# Create backend-only repository
+mkdir capsort-backend
+cp -r backend/* capsort-backend/
+cd capsort-backend
+git init
+git add .
+git commit -m "Backend deployment ready"
+git remote add origin https://github.com/yourusername/capsort-backend.git
+git push -u origin main
+```
+
+## 📦 Frontend Deployment Details
 
 ### 1. Deploy Frontend to Vercel
 
