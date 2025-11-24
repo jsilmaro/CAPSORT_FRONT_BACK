@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '../../components/Navbar';
 import { Card, CardContent } from '../../components/ui/card';
@@ -6,25 +6,135 @@ import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { Edit, Shield, Users } from 'lucide-react';
+import { Edit, Shield, Users, Loader2 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { api } from '../../services/api';
+import { toast } from 'sonner';
 
 export default function AdminProfile() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [adminData, setAdminData] = useState({
-    name: 'Admin User',
-    email: 'admin@ustp.edu.ph',
-    role: 'System Administrator'
+    name: '',
+    email: '',
+    role: ''
+  });
+  const [statistics, setStatistics] = useState({
+    totalPapers: 0,
+    totalUsers: 0,
+    activeSince: 0
+  });
+  const [systemHealth, setSystemHealth] = useState({
+    databaseStatus: '',
+    lastBackup: '',
+    version: ''
   });
 
+  // Fetch admin profile data
+  useEffect(() => {
+    fetchAdminProfile();
+    fetchSystemHealth();
+  }, []);
+
+  const fetchAdminProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/admin/profile');
+      
+      if (response.data.admin) {
+        setAdminData({
+          name: response.data.admin.name,
+          email: response.data.admin.email,
+          role: response.data.admin.role === 'admin' ? 'System Administrator' : response.data.admin.role
+        });
+      }
+      
+      if (response.data.statistics) {
+        setStatistics(response.data.statistics);
+      }
+    } catch (error) {
+      console.error('Error fetching admin profile:', error);
+      toast.error('Failed to load admin profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSystemHealth = async () => {
+    try {
+      const response = await api.get('/admin/system/health');
+      
+      if (response.data.database) {
+        const lastBackupDate = new Date(response.data.database.lastBackup);
+        const formattedBackup = lastBackupDate.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+        
+        setSystemHealth({
+          databaseStatus: response.data.database.status,
+          lastBackup: formattedBackup,
+          version: response.data.system?.version || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching system health:', error);
+      setSystemHealth({
+        databaseStatus: 'Error',
+        lastBackup: 'Unknown',
+        version: ''
+      });
+    }
+  };
+
   const handleLogout = () => {
+    logout();
     navigate('/');
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    // In real app, would save to backend
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      
+      const response = await api.put('/admin/profile', {
+        fullName: adminData.name,
+        email: adminData.email
+      });
+      
+      if (response.data.admin) {
+        setAdminData({
+          name: response.data.admin.name,
+          email: response.data.admin.email,
+          role: response.data.admin.role === 'admin' ? 'System Administrator' : response.data.admin.role
+        });
+        toast.success('Profile updated successfully');
+        setIsEditing(false);
+      }
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to update profile';
+      toast.error(errorMessage);
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f8f8f8]">
+        <Navbar role="admin" onLogout={handleLogout} />
+        <div className="container mx-auto px-8 py-12 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#1a1851]" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8f8f8]">
@@ -42,7 +152,7 @@ export default function AdminProfile() {
                   <div className="relative inline-block mb-4">
                     <Avatar className="w-24 h-24">
                       <AvatarFallback className="bg-[#1a1851] text-white text-[32px]">
-                        AU
+                        {adminData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'AD'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="absolute bottom-0 right-0 bg-[#FFD338] rounded-full p-2">
@@ -94,12 +204,21 @@ export default function AdminProfile() {
                       <div className="flex gap-2">
                         <Button 
                           onClick={handleSave}
+                          disabled={saving}
                           className="flex-1 bg-[#1a1851] hover:bg-[#0B1441] text-white rounded-[8px]"
                         >
-                          Save
+                          {saving ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            'Save'
+                          )}
                         </Button>
                         <Button 
                           onClick={() => setIsEditing(false)}
+                          disabled={saving}
                           variant="outline"
                           className="flex-1 rounded-[8px]"
                         >
@@ -116,7 +235,7 @@ export default function AdminProfile() {
                       Total Papers
                     </span>
                     <span className="font-['Poppins'] text-[18px] text-[#1a1851]">
-                      142
+                      {statistics.totalPapers}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
@@ -124,7 +243,7 @@ export default function AdminProfile() {
                       Total Users
                     </span>
                     <span className="font-['Poppins'] text-[18px] text-[#1a1851]">
-                      98
+                      {statistics.totalUsers}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
@@ -132,7 +251,7 @@ export default function AdminProfile() {
                       Active Since
                     </span>
                     <span className="font-['Poppins'] text-[18px] text-[#1a1851]">
-                      2024
+                      {statistics.activeSince}
                     </span>
                   </div>
                 </div>
@@ -189,7 +308,7 @@ export default function AdminProfile() {
                       System Version
                     </span>
                     <span className="font-['Poppins'] text-[14px] text-black">
-                      v1.0.0
+                      v{systemHealth.version}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -197,15 +316,21 @@ export default function AdminProfile() {
                       Last Backup
                     </span>
                     <span className="font-['Poppins'] text-[14px] text-black">
-                      Today, 3:00 AM
+                      {systemHealth.lastBackup}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-['Poppins'] text-[14px] text-[#929292]">
                       Database Status
                     </span>
-                    <span className="font-['Poppins'] text-[14px] text-[#34c759]">
-                      Healthy
+                    <span className={`font-['Poppins'] text-[14px] ${
+                      systemHealth.databaseStatus === 'Healthy' 
+                        ? 'text-[#34c759]' 
+                        : systemHealth.databaseStatus === 'Error'
+                        ? 'text-red-500'
+                        : 'text-[#929292]'
+                    }`}>
+                      {systemHealth.databaseStatus}
                     </span>
                   </div>
                 </div>

@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import { Toaster } from './components/ui/sonner';
 
 // Auth Pages
 import Login from './pages/Login';
@@ -27,6 +28,7 @@ export default function App() {
   return (
     <AuthProvider>
       <Router>
+        <Toaster position="top-right" />
         <Routes>
           {/* Auth Routes (Public) */}
           <Route path="/login" element={<Login />} />

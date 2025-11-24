@@ -6,6 +6,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const savedProjectRoutes = require('./routes/savedProjectRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 // Import security middleware
 const { generalLimiter, sanitizeInput, securityHeaders } = require('./middleware/security');
@@ -46,6 +47,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/saved-projects', savedProjectRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 handler for undefined routes
 app.use('*', (req, res) => {

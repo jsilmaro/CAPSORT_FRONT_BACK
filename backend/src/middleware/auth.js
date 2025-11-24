@@ -78,7 +78,26 @@ const requireRole = (requiredRole) => {
   };
 };
 
+const requireAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ 
+      error: 'Authentication required',
+      status: 401 
+    });
+  }
+
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ 
+      error: 'Access denied. Admin role required.',
+      status: 403 
+    });
+  }
+
+  next();
+};
+
 module.exports = {
   authenticateToken,
-  requireRole
+  requireRole,
+  requireAdmin
 };
