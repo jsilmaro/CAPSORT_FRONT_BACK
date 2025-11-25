@@ -154,8 +154,11 @@ export default function SavedProjects() {
             </div>
 
             {/* Student Profile */}
-            <div className="flex items-center gap-3">
-              <span className="font-['Poppins'] text-[18px] text-black">Student Name</span>
+            <div 
+              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => navigate('/student/profile')}
+            >
+              <span className="font-['Poppins'] text-[18px] text-black">{user?.fullName || 'Student'}</span>
               <div className="w-[40px] h-[40px] rounded-full border border-black bg-white flex items-center justify-center">
                 <User size={18} className="text-black" />
               </div>

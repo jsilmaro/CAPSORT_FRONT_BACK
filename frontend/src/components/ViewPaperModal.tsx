@@ -11,7 +11,7 @@ interface ViewPaperModalProps {
   paper: {
     title: string;
     author: string;
-    year: string;
+    year: string | number;
     field: string;
   };
   onSave?: () => void;

@@ -186,5 +186,64 @@ model Project {
 
 ---
 
+---
+
+## ✅ Task 4: Auto-Update Year Filters
+**Status: COMPLETE**
+
+Updated all year filter dropdowns to use current year dynamically:
+- ✅ Admin Dashboard - Uses `new Date().getFullYear()`
+- ✅ Guest Projects - Already was dynamic (20 years)
+- ✅ Student Dashboard - Uses `new Date().getFullYear()`
+- ✅ Student Saved Projects - Uses `new Date().getFullYear()`
+
+**Benefits:**
+- Always shows current year as maximum
+- Automatically updates each new year
+- No manual maintenance needed
+- Future-proof implementation
+
+---
+
+## ✅ Task 5: Saved Projects Functionality
+**Status: COMPLETE**
+
+Implemented full save/unsave functionality for students:
+
+### Backend (Already Implemented)
+- ✅ Database schema with SavedProject model
+- ✅ Unique constraint (userId + projectId)
+- ✅ API endpoints for save/unsave/get
+- ✅ Filtering support on saved projects
+- ✅ Authentication required
+
+### Frontend Implementation
+- ✅ **Student Dashboard**: Save paper from View modal
+- ✅ **View Paper Modal**: "Add to Saved Projects" button
+- ✅ **Saved Projects Page**: Display and manage saved papers
+- ✅ **Unsave Functionality**: Remove from saved with confirmation
+- ✅ **Real-time Filtering**: Search, field, year range on saved papers
+- ✅ **Toast Notifications**: Success, info, and error messages
+- ✅ **Loading States**: Smooth UX with spinners
+- ✅ **Empty States**: Contextual messages
+- ✅ **User Display**: Shows actual student name
+
+### Testing
+- ✅ All backend tests passing (7/7)
+- ✅ Save project working
+- ✅ Get saved projects working
+- ✅ Filter saved projects working
+- ✅ Unsave project working
+- ✅ Duplicate detection working
+- ✅ Database connectivity confirmed
+
+### User Flow
+1. Student views paper → Clicks "Add to Saved Projects" → Saved to database
+2. Student goes to Saved Projects page → Sees all saved papers
+3. Student can filter saved papers (search, field, year)
+4. Student clicks "Remove from Saved" → Removed from database
+
+---
+
 ## Status
-🟢 **ALL TASKS COMPLETE** - Admin account created, CRUD operations working, real-time filtering implemented across all pages.
+🟢 **ALL TASKS COMPLETE** - Admin account created, CRUD operations working, real-time filtering implemented across all pages, year filters auto-update with current year, saved projects functionality fully working.

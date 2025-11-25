@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDebounce } from '../../hooks/useDebounce';
+import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -27,6 +28,7 @@ interface Project {
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPaper, setSelectedPaper] = useState<Project | null>(null);
@@ -84,9 +86,29 @@ export default function StudentDashboard() {
     setIsViewModalOpen(true);
   };
 
-  const handleSavePaper = () => {
-    // Handle saving paper to saved projects
-    console.log('Paper saved to Saved Projects');
+  const handleSavePaper = async () => {
+    if (!selectedPaper) return;
+
+    try {
+      const response = await api.post('/saved-projects', {
+        projectId: selectedPaper.id
+      });
+
+      if (response.status === 201) {
+        toast.success('Paper added to Saved Projects');
+        setIsViewModalOpen(false);
+      } else if (response.error) {
+        // Handle specific error messages
+        if (response.error.includes('already saved')) {
+          toast.info('This paper is already in your Saved Projects');
+        } else {
+          toast.error(response.error);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving paper:', error);
+      toast.error('Failed to save paper');
+    }
   };
 
   const handleResetFilter = () => {
@@ -146,7 +168,7 @@ export default function StudentDashboard() {
               className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => navigate('/student/profile')}
             >
-              <span className="font-['Poppins'] text-[18px] text-black">Student Name</span>
+              <span className="font-['Poppins'] text-[18px] text-black">{user?.fullName || 'Student'}</span>
               <div className="w-[40px] h-[40px] rounded-full border border-black bg-white flex items-center justify-center">
                 <User size={18} className="text-black" />
               </div>
