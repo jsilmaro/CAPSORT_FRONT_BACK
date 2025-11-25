@@ -1,7 +1,11 @@
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent } from '../../components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { User } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { User, Loader2 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { api } from '../../services/api';
+import { toast } from 'sonner';
 import imgLogo from "figma:asset/5e19f141de3eaf2163fbc9110148fd1204d40355.png";
 import imgWave1 from "figma:asset/ba56d7e7444bd13beb9ea786959f018859428f69.png";
 import imgFolder1 from "figma:asset/9eaf329b5d94d5d48a8803c555624260a28decfc.png";
@@ -11,33 +15,116 @@ import imgSearching1 from "figma:asset/b0608fe40b14641daf89205557a2d190565bd295.
 import imgPeople10 from "figma:asset/d85598bb0a80b77f3c21d66bd108017142a90408.png";
 import imgCalendar7 from "figma:asset/9f3d7d4eaaeb110fcab009a228c3e24b4f2519e5.png";
 
-// Mock data for charts
-const projectsData = [
-  { year: '2013', IOT: 100, Database: 80 },
-  { year: '2014', IOT: 40, Database: 90 },
-  { year: '2015', IOT: 60, Database: 20 },
-  { year: '2016', IOT: 50, Database: 100 },
-  { year: '2017', IOT: 100, Database: 80 },
-  { year: '2018', IOT: 70, Database: 40 },
-  { year: '2019', IOT: 90, Database: 100 },
-  { year: '2020', IOT: 100, Database: 30 },
-];
+interface AnalyticsSummary {
+  totalProjects: number;
+  totalUsers: number;
+  totalSaves: number;
+  activeStudents: number;
+  mostViewedProject: {
+    title: string;
+    author: string;
+    year: number;
+    field: string;
+    views: number;
+  } | null;
+}
 
-const topSavedProjects = [
-  { name: 'IoT Smart Bin', saves: 120, color: '#34c759' },
-  { name: 'Database Analyzer', saves: 60, color: '#ffcc00' },
-  { name: 'IoT Smart Bin', saves: 24, color: '#34c759' },
-  { name: 'Database Analyzer', saves: 20, color: '#ffcc00' },
-  { name: 'IoT Smart Bin', saves: 10, color: '#34c759' },
-];
+interface ProjectsByYear {
+  year: string;
+  [key: string]: number | string;
+}
 
-const trackDistribution = [
-  { name: 'IOT', value: 65, color: '#34c759' },
-  { name: 'Database', value: 35, color: '#ffcc00' },
-];
+interface FieldDistribution {
+  name: string;
+  value: number;
+  percentage: number;
+}
+
+interface TopSavedProject {
+  id: number;
+  title: string;
+  author: string;
+  year: number;
+  field: string;
+  saves: number;
+}
 
 export default function Analytics() {
   const navigate = useNavigate();
+  const { logout, user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState<AnalyticsSummary>({
+    totalProjects: 0,
+    totalUsers: 0,
+    totalSaves: 0,
+    activeStudents: 0,
+    mostViewedProject: null
+  });
+  const [projectsByYear, setProjectsByYear] = useState<ProjectsByYear[]>([]);
+  const [fieldDistribution, setFieldDistribution] = useState<FieldDistribution[]>([]);
+  const [topSavedProjects, setTopSavedProjects] = useState<TopSavedProject[]>([]);
+
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, []);
+
+  const fetchAnalyticsData = async () => {
+    try {
+      setLoading(true);
+
+      const [dashboardRes, yearRes, distributionRes, topSavedRes] = await Promise.all([
+        api.get('/analytics/dashboard'),
+        api.get('/analytics/projects-by-year'),
+        api.get('/analytics/field-distribution'),
+        api.get('/analytics/top-saved?limit=5')
+      ]);
+
+      if (dashboardRes.data?.summary) {
+        setSummary(dashboardRes.data.summary);
+      }
+
+      if (yearRes.data?.data) {
+        setProjectsByYear(yearRes.data.data);
+      }
+
+      if (distributionRes.data?.data) {
+        setFieldDistribution(distributionRes.data.data);
+      }
+
+      if (topSavedRes.data?.data) {
+        setTopSavedProjects(topSavedRes.data.data);
+      }
+
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      toast.error('Failed to load analytics data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  // Get max saves for progress bar calculation
+  const maxSaves = topSavedProjects.length > 0 
+    ? Math.max(...topSavedProjects.map(p => p.saves))
+    : 1;
+
+  // Calculate progress bar widths (max 304px)
+  const getProgressWidth = (saves: number) => {
+    return Math.round((saves / maxSaves) * 304);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f8f8f8] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1a1851]" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8f8f8]">
@@ -77,8 +164,8 @@ export default function Analytics() {
             </div>
 
             {/* Staff Profile */}
-            <div className="flex items-center gap-3">
-              <span className="font-['Poppins'] text-[18px] text-black">Staff Name</span>
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/admin/profile')}>
+              <span className="font-['Poppins'] text-[18px] text-black">{user?.fullName || 'Admin'}</span>
               <div className="w-[40px] h-[40px] rounded-full border border-black bg-white flex items-center justify-center">
                 <User size={18} className="text-black" />
               </div>
@@ -108,7 +195,7 @@ export default function Analytics() {
                 <img src={imgFolder1} alt="" className="w-[22px] h-[22px]" />
               </div>
               <p className="font-['Poppins'] text-[14px] text-black mb-2">Total Projects</p>
-              <p className="font-['Poppins'] text-[16px] text-black">900 uploaded capstones</p>
+              <p className="font-['Poppins'] text-[16px] text-black">{summary.totalProjects} uploaded capstones</p>
             </CardContent>
           </Card>
 
@@ -119,7 +206,7 @@ export default function Analytics() {
                 <img src={imgPeople11} alt="" className="w-[22px] h-[22px]" />
               </div>
               <p className="font-['Poppins'] text-[14px] text-black mb-2">Active Students</p>
-              <p className="font-['Poppins'] text-[16px] text-black">124 users active this month</p>
+              <p className="font-['Poppins'] text-[16px] text-black">{summary.activeStudents} users active this month</p>
             </CardContent>
           </Card>
 
@@ -130,7 +217,7 @@ export default function Analytics() {
                 <img src={imgStar1} alt="" className="w-[22px] h-[22px]" />
               </div>
               <p className="font-['Poppins'] text-[14px] text-black mb-2">Total Saves/Favorites</p>
-              <p className="font-['Poppins'] text-[16px] text-black">890 total saved items</p>
+              <p className="font-['Poppins'] text-[16px] text-black">{summary.totalSaves} total saved items</p>
             </CardContent>
           </Card>
 
@@ -141,27 +228,33 @@ export default function Analytics() {
                 <img src={imgSearching1} alt="" className="w-[22px] h-[22px]" />
               </div>
               <p className="font-['Poppins'] text-[14px] text-black mb-2">Most Viewed Project</p>
-              <p className="font-['Poppins'] text-[16px] text-black mb-3">
-                <span className="font-semibold">"IoT Smart Bin"</span>
-                <span className="font-light"> – 320 views</span>
-              </p>
-              
-              {/* Tag */}
-              <div className="inline-flex items-center gap-2 bg-[#34c759] rounded-[15px] px-3 py-1 mb-4">
-                <span className="font-['Poppins'] text-[14px] text-black">IOT</span>
-              </div>
+              {summary.mostViewedProject ? (
+                <>
+                  <p className="font-['Poppins'] text-[16px] text-black mb-3">
+                    <span className="font-semibold">"{summary.mostViewedProject.title}"</span>
+                    <span className="font-light"> – {summary.mostViewedProject.views} views</span>
+                  </p>
+                  
+                  {/* Tag */}
+                  <div className="inline-flex items-center gap-2 bg-[#34c759] rounded-[15px] px-3 py-1 mb-4">
+                    <span className="font-['Poppins'] text-[14px] text-black">{summary.mostViewedProject.field}</span>
+                  </div>
 
-              {/* Author and Year */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <img src={imgPeople10} alt="" className="w-[24px] h-[24px]" />
-                  <span className="font-['Poppins'] font-light text-[17px] text-black">Author</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <img src={imgCalendar7} alt="" className="w-[24px] h-[24px]" />
-                  <span className="font-['Poppins'] font-light text-[17px] text-black">Year</span>
-                </div>
-              </div>
+                  {/* Author and Year */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <img src={imgPeople10} alt="" className="w-[24px] h-[24px]" />
+                      <span className="font-['Poppins'] font-light text-[17px] text-black">{summary.mostViewedProject.author}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <img src={imgCalendar7} alt="" className="w-[24px] h-[24px]" />
+                      <span className="font-['Poppins'] font-light text-[17px] text-black">{summary.mostViewedProject.year}</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p className="font-['Poppins'] text-[14px] text-[#929292]">No data available</p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -188,23 +281,29 @@ export default function Analytics() {
                 </div>
               </div>
 
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={projectsData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis 
-                    dataKey="year" 
-                    tick={{ fontSize: 14, fontFamily: 'Poppins', fill: '#1a1851' }}
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 14, fontFamily: 'Poppins', fill: '#1a1851' }}
-                    domain={[0, 100]}
-                    ticks={[0, 20, 40, 60, 80, 100]}
-                  />
-                  <Tooltip />
-                  <Bar dataKey="IOT" fill="#34c759" radius={[5, 5, 0, 0]} barSize={20} />
-                  <Bar dataKey="Database" fill="#ffcc00" radius={[5, 5, 0, 0]} barSize={20} />
-                </BarChart>
-              </ResponsiveContainer>
+              {projectsByYear.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={projectsByYear}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis 
+                      dataKey="year" 
+                      tick={{ fontSize: 14, fontFamily: 'Poppins', fill: '#1a1851' }}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 14, fontFamily: 'Poppins', fill: '#1a1851' }}
+                      domain={[0, 100]}
+                      ticks={[0, 20, 40, 60, 80, 100]}
+                    />
+                    <Tooltip />
+                    <Bar dataKey="IoT" fill="#34c759" radius={[5, 5, 0, 0]} barSize={20} />
+                    <Bar dataKey="Database" fill="#ffcc00" radius={[5, 5, 0, 0]} barSize={20} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[280px] flex items-center justify-center text-[#929292]">
+                  No project data available
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -216,37 +315,49 @@ export default function Analytics() {
                 <p className="font-['Poppins'] text-[16px] text-black">Saves by Track</p>
               </div>
 
-              <div className="flex justify-center mb-4">
-                <ResponsiveContainer width={150} height={150}>
-                  <PieChart>
-                    <Pie
-                      data={trackDistribution}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={45}
-                      outerRadius={75}
-                      paddingAngle={0}
-                      dataKey="value"
-                    >
-                      {trackDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+              {fieldDistribution.length > 0 ? (
+                <>
+                  <div className="flex justify-center mb-4">
+                    <ResponsiveContainer width={150} height={150}>
+                      <PieChart>
+                        <Pie
+                          data={fieldDistribution}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={45}
+                          outerRadius={75}
+                          paddingAngle={0}
+                          dataKey="value"
+                        >
+                          {fieldDistribution.map((entry, index) => (
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={entry.name === 'IoT' ? '#34c759' : '#ffcc00'} 
+                            />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
 
-              {/* Legend */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-[10px] h-[10px] bg-[#34c759]" />
-                  <span className="font-['Poppins'] text-[14px] text-[#1a1851]">IOT</span>
+                  {/* Legend */}
+                  <div className="space-y-2">
+                    {fieldDistribution.map((entry, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <div 
+                          className="w-[10px] h-[10px]" 
+                          style={{ backgroundColor: entry.name === 'IoT' ? '#34c759' : '#ffcc00' }}
+                        />
+                        <span className="font-['Poppins'] text-[14px] text-[#1a1851]">{entry.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="h-[150px] flex items-center justify-center text-[#929292]">
+                  No data available
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-[10px] h-[10px] bg-[#ffcc00]" />
-                  <span className="font-['Poppins'] text-[14px] text-[#1a1851]">Database</span>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -256,27 +367,34 @@ export default function Analytics() {
           <CardContent className="p-6">
             <p className="font-['Poppins'] text-[14px] text-[#1a1851] mb-6">TOP 5 Most Saved Projects</p>
             
-            <div className="space-y-4">
-              {topSavedProjects.map((project, index) => (
-                <div key={index} className="flex items-center gap-4">
-                  <p className="font-['Poppins'] text-[16px] text-[#1a1851] w-[150px]">
-                    {project.name}
-                  </p>
-                  <div className="flex-1 h-[20px] bg-gray-100 rounded-[5px] overflow-hidden">
-                    <div 
-                      className="h-full rounded-[5px]"
-                      style={{ 
-                        width: `${(project.saves / 120) * 100}%`,
-                        backgroundColor: project.color 
-                      }}
-                    />
+            {topSavedProjects.length > 0 ? (
+              <div className="space-y-4">
+                {topSavedProjects.map((project, index) => (
+                  <div key={project.id} className="flex items-center gap-4">
+                    <p className="font-['Poppins'] text-[16px] text-[#1a1851] w-[150px]">
+                      {project.title}
+                    </p>
+                    <div className="flex-1 h-[20px] bg-gray-100 rounded-[5px] overflow-hidden">
+                      <div 
+                        className="h-full rounded-[5px]"
+                        style={{ 
+                          width: `${getProgressWidth(project.saves)}px`,
+                          maxWidth: '304px',
+                          backgroundColor: project.field === 'IoT' ? '#34c759' : '#ffcc00'
+                        }}
+                      />
+                    </div>
+                    <p className="font-['Poppins'] text-[14px] text-[#929292] w-[80px] text-right">
+                      {project.saves} saves
+                    </p>
                   </div>
-                  <p className="font-['Poppins'] text-[14px] text-[#929292] w-[80px] text-right">
-                    {project.saves} saves
-                  </p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-8 text-center">
+                <p className="font-['Poppins'] text-[14px] text-[#929292]">No saved projects data available</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
