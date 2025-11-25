@@ -1,5 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useDebounce } from '../../hooks/useDebounce';
+import { api } from '../../services/api';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 import { Input } from '../../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Button } from '../../components/ui/button';
@@ -12,20 +16,20 @@ import imgCaretDown2 from "figma:asset/5ccb523105427f1617e340bd7b68ac1772f1f857.
 import imgSearchInterfaceSymbol1 from "figma:asset/ae406128f3012b96902d816d28e1503545a493ed.png";
 import imgCalendar1 from "figma:asset/9f3d7d4eaaeb110fcab009a228c3e24b4f2519e5.png";
 
-// Mock data
-const initialProjects = [
-  { id: 1, title: 'Capstone Title', author: 'Author', year: 'Year', field: 'IOT' },
-  { id: 2, title: 'Capstone Title', author: 'Author', year: 'Year', field: 'Database' },
-  { id: 3, title: 'Capstone Title', author: 'Author', year: 'Year', field: 'IOT' },
-  { id: 4, title: 'Capstone Title', author: 'Author', year: 'Year', field: 'Database' },
-  { id: 5, title: 'Capstone Title', author: 'Author', year: 'Year', field: 'IOT' },
-  { id: 6, title: 'Capstone Title', author: 'Author', year: 'Year', field: 'Database' },
-];
+interface Project {
+  id: number;
+  title: string;
+  author: string;
+  year: number;
+  field: string;
+  fileUrl: string;
+}
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState(initialProjects);
-  const [selectedPaper, setSelectedPaper] = useState<typeof initialProjects[0] | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPaper, setSelectedPaper] = useState<Project | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
@@ -34,7 +38,48 @@ export default function StudentDashboard() {
     toYear: ''
   });
 
-  const handleViewClick = (project: typeof initialProjects[0]) => {
+  const debouncedSearch = useDebounce(filters.search, 400);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [debouncedSearch, filters.field, filters.fromYear, filters.toYear]);
+
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      
+      const params = new URLSearchParams();
+      
+      if (debouncedSearch) {
+        params.append('search', debouncedSearch);
+      }
+      
+      if (filters.field && filters.field !== 'all') {
+        params.append('field', filters.field);
+      }
+      
+      if (filters.fromYear) {
+        params.append('yearFrom', filters.fromYear);
+      }
+      
+      if (filters.toYear) {
+        params.append('yearTo', filters.toYear);
+      }
+
+      const response = await api.get<{ projects: Project[] }>(`/projects?${params.toString()}`);
+      
+      if (response.data?.projects) {
+        setProjects(response.data.projects);
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      toast.error('Failed to load projects');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewClick = (project: Project) => {
     setSelectedPaper(project);
     setIsViewModalOpen(true);
   };
@@ -175,7 +220,7 @@ export default function StudentDashboard() {
                         <SelectValue placeholder="From Year" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from({ length: 10 }, (_, i) => 2024 - i).map((year) => (
+                        {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((year) => (
                           <SelectItem key={year} value={year.toString()}>
                             {year}
                           </SelectItem>
@@ -193,7 +238,7 @@ export default function StudentDashboard() {
                         <SelectValue placeholder="To Year" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from({ length: 10 }, (_, i) => 2024 - i).map((year) => (
+                        {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((year) => (
                           <SelectItem key={year} value={year.toString()}>
                             {year}
                           </SelectItem>
@@ -229,9 +274,21 @@ export default function StudentDashboard() {
               </div>
             </div>
 
-            {/* Projects Grid */}
-            <div className="grid grid-cols-2 gap-8">
-              {projects.map((project) => (
+            {/* Loading State */}
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-[#1a1851]" />
+              </div>
+            ) : projects.length === 0 ? (
+              <div className="text-center py-20">
+                <p className="font-['Poppins'] text-[20px] text-[#929292]">
+                  No papers found matching your criteria
+                </p>
+              </div>
+            ) : (
+              /* Projects Grid */
+              <div className="grid grid-cols-2 gap-8">
+                {projects.map((project) => (
                 <div
                   key={project.id}
                   className="bg-white rounded-[15px] border-[0.2px] border-black p-6 relative"
@@ -269,7 +326,8 @@ export default function StudentDashboard() {
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

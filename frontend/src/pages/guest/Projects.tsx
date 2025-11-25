@@ -1,51 +1,73 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navbar } from '../../components/Navbar';
 import { FilterSidebar, FilterValues } from '../../components/FilterSidebar';
 import { CapstoneCard } from '../../components/CapstoneCard';
+import { useDebounce } from '../../hooks/useDebounce';
+import { api } from '../../services/api';
+import { Loader2 } from 'lucide-react';
 
-// Mock data
-const mockProjects = [
-  { id: 1, title: 'Smart Home Automation System', author: 'John Doe', year: 2024, field: 'IoT' },
-  { id: 2, title: 'Student Management Database', author: 'Jane Smith', year: 2024, field: 'Database' },
-  { id: 3, title: 'IoT Weather Monitoring', author: 'Mike Johnson', year: 2023, field: 'IoT' },
-  { id: 4, title: 'Library Management System', author: 'Sarah Williams', year: 2023, field: 'Database' },
-  { id: 5, title: 'Smart Agriculture System', author: 'David Brown', year: 2024, field: 'IoT' },
-  { id: 6, title: 'E-Commerce Database Design', author: 'Emily Davis', year: 2023, field: 'Database' },
-];
+interface Project {
+  id: number;
+  title: string;
+  author: string;
+  year: number;
+  field: string;
+  fileUrl: string;
+}
 
 export default function GuestProjects() {
-  const [filteredProjects, setFilteredProjects] = useState(mockProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<FilterValues>({
+    search: '',
+    field: '',
+    fromYear: '',
+    toYear: ''
+  });
 
-  const handleFilterChange = (filters: FilterValues) => {
-    let filtered = [...mockProjects];
+  const debouncedSearch = useDebounce(filters.search, 400);
 
-    // Apply search filter
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(
-        (project) =>
-          project.title.toLowerCase().includes(searchLower) ||
-          project.author.toLowerCase().includes(searchLower) ||
-          project.field.toLowerCase().includes(searchLower)
-      );
+  useEffect(() => {
+    fetchProjects();
+  }, [debouncedSearch, filters.field, filters.fromYear, filters.toYear]);
+
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      
+      // Build query parameters
+      const params = new URLSearchParams();
+      
+      if (debouncedSearch) {
+        params.append('search', debouncedSearch);
+      }
+      
+      if (filters.field && filters.field !== 'all') {
+        params.append('field', filters.field);
+      }
+      
+      if (filters.fromYear) {
+        params.append('yearFrom', filters.fromYear);
+      }
+      
+      if (filters.toYear) {
+        params.append('yearTo', filters.toYear);
+      }
+
+      const response = await api.get<{ projects: Project[] }>(`/projects?${params.toString()}`);
+      
+      if (response.data?.projects) {
+        setProjects(response.data.projects);
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // Apply field filter
-    if (filters.field && filters.field !== 'all') {
-      filtered = filtered.filter(
-        (project) => project.field.toLowerCase() === filters.field.toLowerCase()
-      );
-    }
-
-    // Apply year range filter
-    if (filters.fromYear) {
-      filtered = filtered.filter((project) => project.year >= parseInt(filters.fromYear));
-    }
-    if (filters.toYear) {
-      filtered = filtered.filter((project) => project.year <= parseInt(filters.toYear));
-    }
-
-    setFilteredProjects(filtered);
+  const handleFilterChange = (newFilters: FilterValues) => {
+    setFilters(newFilters);
   };
 
   return (
@@ -65,30 +87,39 @@ export default function GuestProjects() {
             <div className="flex items-center justify-between mb-8">
               <h1 className="font-['Poppins'] text-[32px] text-black">Capstone Papers</h1>
               <p className="font-['Poppins'] text-[20px] text-[#929292]">
-                {filteredProjects.length} papers found
+                {projects.length} papers found
               </p>
             </div>
 
-            {/* Projects Grid */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              {filteredProjects.map((project) => (
-                <CapstoneCard
-                  key={project.id}
-                  title={project.title}
-                  author={project.author}
-                  year={project.year}
-                  field={project.field}
-                />
-              ))}
-            </div>
-
-            {/* Empty State */}
-            {filteredProjects.length === 0 && (
-              <div className="text-center py-20">
-                <p className="font-['Poppins'] text-[20px] text-[#929292]">
-                  No papers found matching your criteria
-                </p>
+            {/* Loading State */}
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-[#1a1851]" />
               </div>
+            ) : (
+              <>
+                {/* Projects Grid */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  {projects.map((project) => (
+                    <CapstoneCard
+                      key={project.id}
+                      title={project.title}
+                      author={project.author}
+                      year={project.year}
+                      field={project.field}
+                    />
+                  ))}
+                </div>
+
+                {/* Empty State */}
+                {projects.length === 0 && (
+                  <div className="text-center py-20">
+                    <p className="font-['Poppins'] text-[20px] text-[#929292]">
+                      No papers found matching your criteria
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

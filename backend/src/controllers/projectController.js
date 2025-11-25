@@ -3,7 +3,16 @@ const prisma = require('../config/database');
 
 const getAllProjects = async (req, res) => {
   try {
-    const { field, year, search, page = 1, limit = 10, includeDeleted = false } = req.query;
+    const { 
+      field, 
+      year, 
+      yearFrom, 
+      yearTo, 
+      search, 
+      page = 1, 
+      limit = 100, // Increased default limit for better UX
+      includeDeleted = false 
+    } = req.query;
     
     // Build where clause for filtering
     const where = {};
@@ -13,17 +22,37 @@ const getAllProjects = async (req, res) => {
       where.isDeleted = false;
     }
     
-    if (field) {
+    // Field filter - exact match (case-insensitive)
+    if (field && field !== 'all') {
       where.field = {
-        contains: field,
+        equals: field,
         mode: 'insensitive'
       };
     }
     
-    if (year) {
-      where.year = parseInt(year);
+    // Year range filter
+    if (yearFrom || yearTo || year) {
+      const yearConditions = {};
+      
+      if (year) {
+        // Single year filter (for backward compatibility)
+        yearConditions.equals = parseInt(year);
+      } else {
+        // Year range filter
+        if (yearFrom) {
+          yearConditions.gte = parseInt(yearFrom);
+        }
+        if (yearTo) {
+          yearConditions.lte = parseInt(yearTo);
+        }
+      }
+      
+      if (Object.keys(yearConditions).length > 0) {
+        where.year = yearConditions;
+      }
     }
     
+    // Search filter - searches in title, author, and field
     if (search) {
       where.OR = [
         {
@@ -34,6 +63,12 @@ const getAllProjects = async (req, res) => {
         },
         {
           author: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        },
+        {
+          field: {
             contains: search,
             mode: 'insensitive'
           }

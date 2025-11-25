@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useDebounce } from '../../hooks/useDebounce';
 import { AddPaperModal, PaperData } from '../../components/AddPaperModal';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -40,41 +41,42 @@ export default function AdminDashboard() {
     toYear: ''
   });
 
+  // Import the debounce hook at the top of the file
+  const debouncedSearch = useDebounce(filters.search, 400);
+
   useEffect(() => {
     fetchProjects();
-  }, [filters]);
+  }, [debouncedSearch, filters.field, filters.fromYear, filters.toYear]);
 
   const fetchProjects = async () => {
     try {
       setLoading(true);
       
-      // Build query parameters
+      // Build query parameters for backend filtering
       const params = new URLSearchParams();
-      if (filters.search) params.append('search', filters.search);
-      if (filters.field && filters.field !== 'all') params.append('field', filters.field);
       
-      // Handle year filtering
+      // Search filter (debounced)
+      if (debouncedSearch) {
+        params.append('search', debouncedSearch);
+      }
+      
+      // Field filter
+      if (filters.field && filters.field !== 'all') {
+        params.append('field', filters.field);
+      }
+      
+      // Year range filters
       if (filters.fromYear) {
-        // For simplicity, we'll filter on the frontend after fetching
-        // Or you could implement year range filtering in the backend
+        params.append('yearFrom', filters.fromYear);
+      }
+      if (filters.toYear) {
+        params.append('yearTo', filters.toYear);
       }
 
       const response = await api.get<{ projects: Project[] }>(`/projects?${params.toString()}`);
       
       if (response.data?.projects) {
-        let filteredProjects = response.data.projects;
-        
-        // Apply year filtering on frontend
-        if (filters.fromYear || filters.toYear) {
-          filteredProjects = filteredProjects.filter((p: Project) => {
-            const projectYear = p.year;
-            const from = filters.fromYear ? parseInt(filters.fromYear) : 0;
-            const to = filters.toYear ? parseInt(filters.toYear) : 9999;
-            return projectYear >= from && projectYear <= to;
-          });
-        }
-        
-        setProjects(filteredProjects);
+        setProjects(response.data.projects);
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -311,7 +313,7 @@ export default function AdminDashboard() {
                       <SelectValue placeholder="From Year" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 10 }, (_, i) => 2024 - i).map((year) => (
+                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((year) => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
                         </SelectItem>
@@ -324,7 +326,7 @@ export default function AdminDashboard() {
                       <SelectValue placeholder="To Year" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 10 }, (_, i) => 2024 - i).map((year) => (
+                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((year) => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
                         </SelectItem>

@@ -4,16 +4,79 @@ const prisma = require('../config/database');
 const getSavedProjects = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { page = 1, limit = 10 } = req.query;
+    const { 
+      field, 
+      yearFrom, 
+      yearTo, 
+      search, 
+      page = 1, 
+      limit = 100 
+    } = req.query;
+
+    // Build where clause for project filtering
+    const projectWhere = {
+      isDeleted: false // Only show non-deleted projects
+    };
+    
+    // Field filter
+    if (field && field !== 'all') {
+      projectWhere.field = {
+        equals: field,
+        mode: 'insensitive'
+      };
+    }
+    
+    // Year range filter
+    if (yearFrom || yearTo) {
+      const yearConditions = {};
+      
+      if (yearFrom) {
+        yearConditions.gte = parseInt(yearFrom);
+      }
+      if (yearTo) {
+        yearConditions.lte = parseInt(yearTo);
+      }
+      
+      if (Object.keys(yearConditions).length > 0) {
+        projectWhere.year = yearConditions;
+      }
+    }
+    
+    // Search filter
+    if (search) {
+      projectWhere.OR = [
+        {
+          title: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        },
+        {
+          author: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        },
+        {
+          field: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        }
+      ];
+    }
 
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
 
-    // Fetch saved projects with full project details
+    // Fetch saved projects with full project details and filtering
     const [savedProjects, totalCount] = await Promise.all([
       prisma.savedProject.findMany({
-        where: { userId },
+        where: { 
+          userId,
+          project: projectWhere
+        },
         include: {
           project: {
             include: {
@@ -34,7 +97,12 @@ const getSavedProjects = async (req, res) => {
         skip,
         take
       }),
-      prisma.savedProject.count({ where: { userId } })
+      prisma.savedProject.count({ 
+        where: { 
+          userId,
+          project: projectWhere
+        } 
+      })
     ]);
 
     const totalPages = Math.ceil(totalCount / parseInt(limit));

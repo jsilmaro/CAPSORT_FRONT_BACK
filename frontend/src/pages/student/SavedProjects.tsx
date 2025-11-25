@@ -1,5 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useDebounce } from '../../hooks/useDebounce';
+import { useAuth } from '../../contexts/AuthContext';
+import { api } from '../../services/api';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 import { Input } from '../../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Button } from '../../components/ui/button';
@@ -12,19 +17,24 @@ import imgSearchInterfaceSymbol1 from "figma:asset/ae406128f3012b96902d816d28e15
 import imgCalendar1 from "figma:asset/9f3d7d4eaaeb110fcab009a228c3e24b4f2519e5.png";
 import imgBookmark1 from "figma:asset/0d0b126172c8e64eb4067af06f6ec214fd7b1e98.png";
 
-// Mock saved projects data
-const initialSavedProjects = [
-  { id: 1, title: 'Capstone Title', author: 'Author', year: 'Year', field: 'IOT' },
-  { id: 2, title: 'Capstone Title', author: 'Author', year: 'Year', field: 'Database' },
-  { id: 3, title: 'Capstone Title', author: 'Author', year: 'Year', field: 'IOT' },
-  { id: 4, title: 'Capstone Title', author: 'Author', year: 'Year', field: 'Database' },
-  { id: 5, title: 'Capstone Title', author: 'Author', year: 'Year', field: 'IOT' },
-  { id: 6, title: 'Capstone Title', author: 'Author', year: 'Year', field: 'Database' },
-];
+interface SavedProject {
+  id: number;
+  projectId: number;
+  project: {
+    id: number;
+    title: string;
+    author: string;
+    year: number;
+    field: string;
+    fileUrl: string;
+  };
+}
 
 export default function SavedProjects() {
   const navigate = useNavigate();
-  const [savedProjects, setSavedProjects] = useState(initialSavedProjects);
+  const { user } = useAuth();
+  const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     search: '',
     field: '',
@@ -32,8 +42,63 @@ export default function SavedProjects() {
     toYear: ''
   });
 
-  const handleRemoveFromSaved = (id: number) => {
-    setSavedProjects(savedProjects.filter(p => p.id !== id));
+  const debouncedSearch = useDebounce(filters.search, 400);
+
+  useEffect(() => {
+    if (user) {
+      fetchSavedProjects();
+    }
+  }, [debouncedSearch, filters.field, filters.fromYear, filters.toYear, user]);
+
+  const fetchSavedProjects = async () => {
+    try {
+      setLoading(true);
+      
+      const params = new URLSearchParams();
+      
+      if (debouncedSearch) {
+        params.append('search', debouncedSearch);
+      }
+      
+      if (filters.field && filters.field !== 'all') {
+        params.append('field', filters.field);
+      }
+      
+      if (filters.fromYear) {
+        params.append('yearFrom', filters.fromYear);
+      }
+      
+      if (filters.toYear) {
+        params.append('yearTo', filters.toYear);
+      }
+
+      const response = await api.get<{ savedProjects: SavedProject[] }>(`/saved-projects?${params.toString()}`);
+      
+      if (response.data?.savedProjects) {
+        setSavedProjects(response.data.savedProjects);
+      }
+    } catch (error) {
+      console.error('Error fetching saved projects:', error);
+      toast.error('Failed to load saved projects');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveFromSaved = async (projectId: number) => {
+    try {
+      const response = await api.delete(`/saved-projects/${projectId}`);
+      
+      if (response.status === 200) {
+        toast.success('Removed from saved projects');
+        fetchSavedProjects(); // Refresh the list
+      } else {
+        toast.error('Failed to remove from saved projects');
+      }
+    } catch (error) {
+      console.error('Error removing saved project:', error);
+      toast.error('Failed to remove from saved projects');
+    }
   };
 
   const handleResetFilter = () => {
@@ -165,7 +230,7 @@ export default function SavedProjects() {
                         <SelectValue placeholder="From Year" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from({ length: 10 }, (_, i) => 2024 - i).map((year) => (
+                        {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((year) => (
                           <SelectItem key={year} value={year.toString()}>
                             {year}
                           </SelectItem>
@@ -183,7 +248,7 @@ export default function SavedProjects() {
                         <SelectValue placeholder="To Year" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from({ length: 10 }, (_, i) => 2024 - i).map((year) => (
+                        {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((year) => (
                           <SelectItem key={year} value={year.toString()}>
                             {year}
                           </SelectItem>
@@ -219,56 +284,17 @@ export default function SavedProjects() {
               </div>
             </div>
 
-            {/* Projects Grid */}
-            <div className="grid grid-cols-2 gap-8">
-              {savedProjects.map((project) => (
-                <div
-                  key={project.id}
-                  className="bg-white rounded-[15px] border-[0.2px] border-black p-6 relative"
-                >
-                  {/* Title and Badge */}
-                  <div className="flex items-start justify-between mb-6">
-                    <h3 className="font-['Poppins'] font-medium text-[20px] text-black">
-                      {project.title}
-                    </h3>
-                    <div className={`${getBadgeColor(project.field)} rounded-[15px] px-3 py-1 min-w-[76px] flex items-center justify-center`}>
-                      <span className="font-['Poppins'] font-semibold text-[12px] text-black text-center">{project.field}</span>
-                    </div>
-                  </div>
-
-                  {/* Author */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <img src={imgPeople3} alt="" className="w-[22px] h-[22px]" />
-                    <span className="font-['Poppins'] font-light text-[15px] text-black">{project.author}</span>
-                  </div>
-
-                  {/* Year */}
-                  <div className="flex items-center gap-3 mb-8">
-                    <img src={imgCalendar1} alt="" className="w-[22px] h-[22px]" />
-                    <span className="font-['Poppins'] font-light text-[15px] text-black">{project.year}</span>
-                  </div>
-
-                  {/* Remove from Saved */}
-                  <div className="flex items-center justify-end">
-                    <button 
-                      onClick={() => handleRemoveFromSaved(project.id)}
-                      className="flex items-center gap-[15px] hover:opacity-70 transition-opacity"
-                    >
-                      <span className="font-['Poppins'] font-light text-[17px] text-black">
-                        Removed from Saved
-                      </span>
-                      <img src={imgBookmark1} alt="" className="w-[25px] h-[25px]" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Empty State */}
-            {savedProjects.length === 0 && (
+            {/* Loading State */}
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-[#1a1851]" />
+              </div>
+            ) : savedProjects.length === 0 ? (
               <div className="text-center py-20">
                 <p className="font-['Poppins'] text-[20px] text-[#929292] mb-4">
-                  No saved papers found
+                  {filters.search || filters.field || filters.fromYear || filters.toYear
+                    ? 'No saved papers found matching your criteria'
+                    : 'No saved papers found'}
                 </p>
                 <Button 
                   onClick={() => navigate('/student/dashboard')}
@@ -276,6 +302,51 @@ export default function SavedProjects() {
                 >
                   Browse Papers
                 </Button>
+              </div>
+            ) : (
+              /* Projects Grid */
+              <div className="grid grid-cols-2 gap-8">
+                {savedProjects.map((savedProject) => (
+                  <div
+                    key={savedProject.id}
+                    className="bg-white rounded-[15px] border-[0.2px] border-black p-6 relative"
+                  >
+                    {/* Title and Badge */}
+                    <div className="flex items-start justify-between mb-6">
+                      <h3 className="font-['Poppins'] font-medium text-[20px] text-black">
+                        {savedProject.project.title}
+                      </h3>
+                      <div className={`${getBadgeColor(savedProject.project.field)} rounded-[15px] px-3 py-1 min-w-[76px] flex items-center justify-center`}>
+                        <span className="font-['Poppins'] font-semibold text-[12px] text-black text-center">{savedProject.project.field}</span>
+                      </div>
+                    </div>
+
+                    {/* Author */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <img src={imgPeople3} alt="" className="w-[22px] h-[22px]" />
+                      <span className="font-['Poppins'] font-light text-[15px] text-black">{savedProject.project.author}</span>
+                    </div>
+
+                    {/* Year */}
+                    <div className="flex items-center gap-3 mb-8">
+                      <img src={imgCalendar1} alt="" className="w-[22px] h-[22px]" />
+                      <span className="font-['Poppins'] font-light text-[15px] text-black">{savedProject.project.year}</span>
+                    </div>
+
+                    {/* Remove from Saved */}
+                    <div className="flex items-center justify-end">
+                      <button 
+                        onClick={() => handleRemoveFromSaved(savedProject.projectId)}
+                        className="flex items-center gap-[15px] hover:opacity-70 transition-opacity"
+                      >
+                        <span className="font-['Poppins'] font-light text-[17px] text-black">
+                          Remove from Saved
+                        </span>
+                        <img src={imgBookmark1} alt="" className="w-[25px] h-[25px]" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
