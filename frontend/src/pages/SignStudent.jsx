@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import Lottie from "lottie-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { authService } from "../services/auth";
 
 import SplashAnimation from "../assets/splash.json"; 
 import CapsortImage from "../assets/capsort.png";     
@@ -24,6 +25,8 @@ export default function SignTabs() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState("");
 
   // New states to track inputs for each tab
   const [studentEmail, setStudentEmail] = useState("");
@@ -221,19 +224,62 @@ export default function SignTabs() {
                 className="signup-input"
               />
             </div>
+            {forgotPasswordMessage && (
+              <div style={{ 
+                color: forgotPasswordMessage.includes('sent') ? 'green' : 'red', 
+                padding: '10px', 
+                marginTop: '10px',
+                backgroundColor: forgotPasswordMessage.includes('sent') ? '#e6ffe6' : '#ffe6e6',
+                borderRadius: '5px',
+                textAlign: 'center',
+                fontSize: '14px'
+              }}>
+                {forgotPasswordMessage}
+              </div>
+            )}
             <div className="modal-buttons">
               <button
                 className="modal-send-link"
-                onClick={() => {
-                  alert(`Reset link sent to ${forgotEmail}`);
-                  setShowForgotModal(false);
+                disabled={!forgotEmail || forgotPasswordLoading}
+                onClick={async () => {
+                  setForgotPasswordLoading(true);
+                  setForgotPasswordMessage("");
+                  
+                  const result = await authService.requestPasswordReset(forgotEmail);
+                  
+                  if (result.success) {
+                    setForgotPasswordMessage(result.message);
+                    // In development, log the reset link
+                    if (result.resetLink) {
+                      console.log('Password Reset Link:', result.resetLink);
+                      console.log('Reset Token:', result.resetToken);
+                    }
+                    setTimeout(() => {
+                      setShowForgotModal(false);
+                      setForgotEmail("");
+                      setForgotPasswordMessage("");
+                    }, 3000);
+                  } else {
+                    setForgotPasswordMessage(result.error || 'Failed to send reset link');
+                  }
+                  
+                  setForgotPasswordLoading(false);
+                }}
+                style={{
+                  cursor: (!forgotEmail || forgotPasswordLoading) ? "not-allowed" : "pointer",
+                  opacity: (!forgotEmail || forgotPasswordLoading) ? 0.6 : 1
                 }}
               >
-                Send Reset Link
+                {forgotPasswordLoading ? "Sending..." : "Send Reset Link"}
               </button>
               <button
                 className="modal-cancel"
-                onClick={() => setShowForgotModal(false)}
+                onClick={() => {
+                  setShowForgotModal(false);
+                  setForgotEmail("");
+                  setForgotPasswordMessage("");
+                }}
+                disabled={forgotPasswordLoading}
               >
                 Cancel
               </button>

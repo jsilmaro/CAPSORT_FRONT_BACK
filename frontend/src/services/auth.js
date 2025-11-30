@@ -126,6 +126,45 @@ class AuthService {
     const user = this.getStoredUser();
     return user?.role === 'student';
   }
+
+  // Request password reset
+  async requestPasswordReset(email) {
+    const response = await api.post('/auth/forgot-password', { email });
+
+    if (response.data) {
+      return {
+        success: true,
+        message: response.data.message,
+        // Development only - remove in production
+        resetLink: response.data.resetLink,
+        resetToken: response.data.resetToken
+      };
+    }
+
+    return {
+      success: false,
+      error: response.error,
+      message: response.message
+    };
+  }
+
+  // Reset password with token
+  async resetPassword(token, newPassword) {
+    const response = await api.post('/auth/reset-password', { token, newPassword });
+
+    if (response.data) {
+      return {
+        success: true,
+        message: response.data.message
+      };
+    }
+
+    return {
+      success: false,
+      error: response.error,
+      message: response.message
+    };
+  }
 }
 
 export const authService = new AuthService();
