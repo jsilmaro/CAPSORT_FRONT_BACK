@@ -1,248 +1,239 @@
 # Capsort Backend API
 
-A RESTful API for the Capsort Capstone Collection platform, built with Node.js, Express.js, and PostgreSQL.
+Backend API for Capsort - Capstone Collection Platform
 
-## Features
+## 🚀 Quick Start
 
-- 🔐 JWT-based authentication with role-based access control
-- 📚 Project management (CRUD operations)
-- ⭐ User favorites/saved projects functionality
-- 🔍 Advanced search and filtering
-- 🛡️ Comprehensive security measures
-- 📊 Input validation and error handling
-- 🧪 Comprehensive test suite
+### Local Development:
 
-## Tech Stack
-
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Database**: PostgreSQL (Neon)
-- **ORM**: Prisma
-- **Authentication**: JWT
-- **Password Hashing**: bcryptjs
-- **Validation**: express-validator
-- **Testing**: Jest + Supertest
-
-## Quick Start
-
-### Prerequisites
-
-- Node.js (v16 or higher)
-- Neon PostgreSQL database account
-- npm or yarn
-
-### Installation
-
-1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd capsort-backend
-```
-
-2. Install dependencies:
-```bash
+# Install dependencies
 npm install
-```
 
-3. Set up Neon Database:
-   - Create account at [neon.tech](https://neon.tech)
-   - Create a new project
-   - Copy your connection string
-
-4. Set up environment variables:
-```bash
+# Set up environment variables
 cp .env.example .env
-```
+# Edit .env with your database credentials
 
-Edit `.env` with your Neon configuration:
-```env
-# Replace with your actual Neon connection string
-DATABASE_URL="postgresql://username:password@ep-xxx-xxx.region.aws.neon.tech/neondb?sslmode=require"
-DIRECT_URL="postgresql://username:password@ep-xxx-xxx.region.aws.neon.tech/neondb?sslmode=require"
-JWT_SECRET="your-super-secret-jwt-key-here"
-JWT_EXPIRES_IN="7d"
-PORT=5000
-NODE_ENV="development"
-CLIENT_URL="http://localhost:3000"
-```
+# Generate Prisma Client
+npx prisma generate
 
-Generate a secure JWT secret:
-```bash
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-```
+# Push database schema
+npx prisma db push
 
-5. Set up the database:
-```bash
-npm run db:setup
-```
-
-6. Start the development server:
-```bash
+# Start development server
 npm run dev
 ```
 
-The API will be available at `http://localhost:5000`
+Server will run on http://localhost:5000
 
-## API Endpoints
+### Environment Variables:
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/me` - Get current user (protected)
-
-### Projects
-- `GET /api/projects` - Get all projects (public)
-- `GET /api/projects/:id` - Get project by ID (public)
-- `POST /api/projects` - Create project (admin only)
-- `PUT /api/projects/:id` - Update project (admin only)
-- `DELETE /api/projects/:id` - Delete project (admin only)
-
-### Saved Projects
-- `GET /api/saved-projects` - Get user's saved projects (protected)
-- `POST /api/saved-projects` - Save a project (protected)
-- `DELETE /api/saved-projects/:projectId` - Unsave project (protected)
-
-## Query Parameters
-
-### Projects Filtering
-- `field` - Filter by field (e.g., IoT, Database)
-- `year` - Filter by year
-- `search` - Search in title and author
-- `page` - Page number (default: 1)
-- `limit` - Items per page (default: 10, max: 100)
-
-Example:
-```
-GET /api/projects?field=IoT&year=2024&search=smart&page=1&limit=10
-```
-
-## Database Scripts
-
-- `npm run db:migrate` - Run database migrations
-- `npm run db:generate` - Generate Prisma client
-- `npm run db:seed` - Seed database with sample data
-- `npm run db:reset` - Clear all database data
-- `npm run db:setup` - Full database setup (migrate + generate + seed)
-
-## Neon Database Setup
-
-### Getting Your Connection String
-
-1. **Login to Neon Console**: [https://console.neon.tech](https://console.neon.tech)
-2. **Select Your Project**: Choose your Capsort project
-3. **Navigate to Dashboard**: Click on "Dashboard" in the sidebar
-4. **Copy Connection String**: Find "Connection Details" and copy the connection string
-
-### Connection String Format
-```
-postgresql://username:password@ep-xxx-xxx.region.aws.neon.tech/neondb?sslmode=require
-```
-
-### Important Notes for Neon:
-- Always use `sslmode=require` in your connection string
-- Neon automatically handles connection pooling
-- The `DIRECT_URL` should be the same as `DATABASE_URL` for Neon
-- Neon databases auto-pause after inactivity (great for development!)
-
-### Troubleshooting Neon Connection:
-- Ensure your connection string includes `?sslmode=require`
-- Check that your Neon project is not paused
-- Verify the region in your connection string matches your project region
-
-## Testing
-
-Run the test suite:
-```bash
-npm test
-```
-
-Run tests in watch mode:
-```bash
-npm run test:watch
-```
-
-## Test Accounts
-
-After seeding, you can use these test accounts:
-
-**Admin Account:**
-- Email: `admin@capsort.com`
-- Password: `Admin123!`
-
-**Student Accounts:**
-- Email: `john.doe@student.com` / Password: `Student123!`
-- Email: `jane.smith@student.com` / Password: `Student123!`
-
-## Deployment
-
-### Environment Variables for Production
+Copy `.env.example` to `.env` and configure:
 
 ```env
-DATABASE_URL="your-production-database-url"
-JWT_SECRET="your-production-jwt-secret"
-JWT_EXPIRES_IN="7d"
+NODE_ENV=development
 PORT=5000
-NODE_ENV="production"
-CLIENT_URL="https://your-frontend-domain.com"
+DATABASE_URL=your_neon_database_url
+DIRECT_URL=your_neon_database_url
+JWT_SECRET=your_secret_key
+JWT_EXPIRES_IN=7d
+FRONTEND_URL=http://localhost:3001
+CLIENT_URL=http://localhost:3001
 ```
 
-### Deploy to Render
+## 📦 Deployment
 
-1. Connect your GitHub repository to Render
-2. Set the build command: `npm install && npm run db:generate`
-3. Set the start command: `npm start`
-4. Add environment variables in Render dashboard
-5. Deploy!
+This backend is ready for deployment on Render.
 
-### Deploy to Railway
+### Quick Deployment (5 minutes):
+See [RENDER-QUICK-START.md](../RENDER-QUICK-START.md)
 
-1. Connect your GitHub repository to Railway
-2. Add environment variables in Railway dashboard
-3. Railway will automatically detect and deploy your Node.js app
+### Complete Guide:
+See [RENDER-DEPLOYMENT-GUIDE.md](../RENDER-DEPLOYMENT-GUIDE.md)
 
-## Security Features
+## 📚 Documentation
 
-- Password hashing with bcryptjs
-- JWT token authentication
-- Role-based access control
-- Input validation and sanitization
-- Rate limiting on authentication endpoints
-- CORS configuration
-- Security headers
-- XSS protection
+- [Render Deployment Guide](../RENDER-DEPLOYMENT-GUIDE.md) - Complete deployment instructions
+- [Quick Start](../RENDER-QUICK-START.md) - 5-minute deployment guide
+- [Backend Ready](../BACKEND-RENDER-READY.md) - Deployment checklist
+- [API Reference](../BACKEND-API-REFERENCE.md) - API endpoints documentation
 
-## Error Handling
+## 🛠️ Tech Stack
 
-The API returns consistent error responses:
+- **Runtime:** Node.js
+- **Framework:** Express.js
+- **Database:** PostgreSQL (Neon)
+- **ORM:** Prisma
+- **Authentication:** JWT + bcrypt
+- **Validation:** express-validator
+- **Security:** CORS, Rate Limiting, Input Sanitization
 
-```json
-{
-  "error": "Error message",
-  "details": ["Specific field errors"],
-  "status": 400
-}
+## 📊 Features
+
+### Authentication:
+- ✅ Student registration
+- ✅ Student login
+- ✅ Admin login (separate endpoint)
+- ✅ Password reset flow with email
+- ✅ JWT token authentication
+- ✅ Role-based access control
+
+### Projects:
+- ✅ CRUD operations (admin only)
+- ✅ Public project listing
+- ✅ Filtering (field, year, search)
+- ✅ Pagination support
+- ✅ Soft delete (trash/restore)
+
+### Saved Projects:
+- ✅ Save projects (students)
+- ✅ Unsave projects
+- ✅ List saved projects with filters
+- ✅ User-specific saved lists
+
+### Admin Features:
+- ✅ Admin profile management
+- ✅ System analytics
+- ✅ User activity tracking
+- ✅ About page content management
+
+## 🔐 Security Features
+
+- ✅ CORS protection with whitelist
+- ✅ Rate limiting on all endpoints
+- ✅ Input sanitization
+- ✅ Security headers (Helmet-like)
+- ✅ JWT token authentication
+- ✅ Password hashing with bcrypt (12 rounds)
+- ✅ SQL injection protection (Prisma)
+- ✅ Environment variable protection
+
+## 📝 API Endpoints
+
+### Public Endpoints:
+
+```
+GET  /health                      - Health check
+GET  /api/projects                - Get all projects (with filters)
+GET  /api/projects/:id            - Get project by ID
+POST /api/auth/register           - Student registration
+POST /api/auth/login              - Student login
+POST /api/auth/admin/login        - Admin login
+POST /api/auth/forgot-password    - Request password reset
+POST /api/auth/reset-password     - Reset password with token
+GET  /api/about                   - Get about content
 ```
 
-## HTTP Status Codes
+### Protected Endpoints (Require Authentication):
 
-- `200` - Success
-- `201` - Created
-- `400` - Bad Request (validation errors)
-- `401` - Unauthorized (authentication required)
-- `403` - Forbidden (insufficient permissions)
-- `404` - Not Found
-- `429` - Too Many Requests (rate limited)
-- `500` - Internal Server Error
+```
+GET    /api/auth/me                    - Get current user
+GET    /api/saved-projects             - Get saved projects
+POST   /api/saved-projects             - Save a project
+DELETE /api/saved-projects/:projectId  - Unsave a project
+```
 
-## Contributing
+### Admin Only Endpoints:
+
+```
+POST   /api/projects              - Create project
+PUT    /api/projects/:id          - Update project
+DELETE /api/projects/:id          - Delete project (soft delete)
+POST   /api/projects/:id/restore  - Restore deleted project
+GET    /api/admin/profile         - Get admin profile
+PUT    /api/admin/profile         - Update admin profile
+PUT    /api/about                 - Update about content
+GET    /api/analytics/*           - Analytics endpoints
+```
+
+## 🗄️ Database Schema
+
+### Models:
+
+- **User** - Students and admins
+- **Project** - Capstone projects
+- **SavedProject** - User's saved projects
+- **AboutContent** - About page content
+
+See `prisma/schema.prisma` for complete schema.
+
+## 🧪 Testing
+
+```bash
+# Run tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Test database connection
+npm run test:connection
+```
+
+## 🔧 Scripts
+
+```bash
+npm start              # Start production server
+npm run dev            # Start development server with nodemon
+npm run build          # Generate Prisma Client
+npm run db:generate    # Generate Prisma Client
+npm run db:push        # Push schema to database
+npm run db:migrate     # Run migrations
+npm run db:seed        # Seed database
+npm run create:admin   # Create admin account
+```
+
+## 📁 Project Structure
+
+```
+backend/
+├── src/
+│   ├── controllers/      # Request handlers
+│   ├── routes/           # API routes
+│   ├── middleware/       # Custom middleware
+│   ├── config/           # Configuration files
+│   └── index.js          # Entry point
+├── prisma/
+│   ├── schema.prisma     # Database schema
+│   └── migrations/       # Database migrations
+├── scripts/              # Utility scripts
+├── tests/                # Test files
+├── package.json          # Dependencies
+├── .env.example          # Environment template
+├── render.yaml           # Render configuration
+└── build.sh              # Build script
+```
+
+## 🔗 Related Repositories
+
+- **Frontend:** https://github.com/mmxlvsu/Capsort
+- **Monorepo (archived):** https://github.com/jsilmaro/CAPSORT_FRONT_BACK
+
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
+4. Test thoroughly
+5. Submit a pull request
 
-## License
+## 📄 License
 
-MIT License
+MIT
+
+## 🆘 Support
+
+For issues or questions:
+- Check the documentation files
+- Review the deployment guides
+- Check Render logs for deployment issues
+
+## 🎯 Deployment Status
+
+- ✅ Ready for Render deployment
+- ✅ Database schema configured
+- ✅ Environment variables documented
+- ✅ Build scripts prepared
+- ✅ Security measures implemented
+
+Deploy now: Follow [RENDER-QUICK-START.md](../RENDER-QUICK-START.md)
