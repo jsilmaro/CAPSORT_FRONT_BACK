@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const prisma = require('../config/database');
+const emailService = require('../services/emailService');
 
 const generateToken = (userId, role) => {
   return jwt.sign(
@@ -278,16 +279,32 @@ const requestPasswordReset = async (req, res) => {
       }
     });
 
-    // TODO: Send email with reset link
-    // For now, we'll return the token in development mode
-    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+    // Generate reset link
+    const resetLink = `${process.env.CLIENT_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
     
-    console.log('Password reset link:', resetLink);
-    console.log('Reset token:', resetToken);
+    // Send email with reset link
+    const emailResult = await emailService.sendPasswordResetEmail(
+      user.email, 
+      resetLink, 
+      user.fullName
+    );
+
+    if (emailResult.success) {
+      console.log('Password reset email sent successfully to:', user.email);
+    } else {
+      console.error('Failed to send password reset email:', emailResult.error);
+      // Continue anyway - don't reveal if email sending failed for security
+    }
+
+    // Log for development (remove in production)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Password reset link:', resetLink);
+      console.log('Reset token:', resetToken);
+    }
 
     res.status(200).json({
       message: 'If an account exists with this email, a password reset link has been sent',
-      // Remove this in production - only for development
+      // Only include reset link in development for testing
       ...(process.env.NODE_ENV === 'development' && { resetLink, resetToken }),
       status: 200
     });
