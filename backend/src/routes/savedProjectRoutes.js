@@ -27,16 +27,16 @@ const queryValidation = [
     .withMessage('Limit must be between 1 and 100'),
   query('year')
     .optional()
-    .isInt({ min: 1900, max: new Date().getFullYear() })
-    .withMessage(`Year must be between 1900 and ${new Date().getFullYear()}`),
+    .isInt({ min: 2010, max: new Date().getFullYear() })
+    .withMessage(`Year must be between 2010 and ${new Date().getFullYear()}`),
   query('yearFrom')
     .optional()
-    .isInt({ min: 1900, max: new Date().getFullYear() })
-    .withMessage(`Year from must be between 1900 and ${new Date().getFullYear()}`),
+    .isInt({ min: 2010, max: new Date().getFullYear() })
+    .withMessage(`Year from must be between 2010 and ${new Date().getFullYear()}`),
   query('yearTo')
     .optional()
-    .isInt({ min: 1900, max: new Date().getFullYear() })
-    .withMessage(`Year to must be between 1900 and ${new Date().getFullYear()}`),
+    .isInt({ min: 2010, max: new Date().getFullYear() })
+    .withMessage(`Year to must be between 2010 and ${new Date().getFullYear()}`),
   query('field')
     .optional()
     .trim()

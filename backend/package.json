@@ -21,7 +21,9 @@
     "setup:neon": "node scripts/setup-neon.js",
     "test:connection": "node scripts/test-connection.js",
     "create:admin": "node scripts/create-admin.js",
-    "test:admin": "node scripts/test-admin-login.js"
+    "test:admin": "node scripts/test-admin-login.js",
+    "clean:projects": "node scripts/clean-projects-data.js",
+    "check:db": "node scripts/check-database-state.js"
   },
   "keywords": [
     "capstone",
