@@ -3,8 +3,10 @@ const prisma = require('../config/database');
 // Get analytics dashboard data
 const getAnalyticsDashboard = async (req, res) => {
   try {
-    // Get total projects count
-    const totalProjects = await prisma.project.count();
+    // Get total projects count (only non-deleted)
+    const totalProjects = await prisma.project.count({
+      where: { isDeleted: false }
+    });
 
     // Get total users (students only)
     const totalUsers = await prisma.user.count({
@@ -31,7 +33,10 @@ const getAnalyticsDashboard = async (req, res) => {
     let mostViewedProject = null;
     if (mostSavedProject.length > 0) {
       const projectDetails = await prisma.project.findUnique({
-        where: { id: mostSavedProject[0].projectId },
+        where: { 
+          id: mostSavedProject[0].projectId,
+          isDeleted: false
+        },
         select: {
           id: true,
           title: true,
@@ -93,8 +98,9 @@ const getAnalyticsDashboard = async (req, res) => {
 // Get projects by year and field
 const getProjectsByYear = async (req, res) => {
   try {
-    // Get all projects grouped by year and field
+    // Get all projects grouped by year and field (only non-deleted)
     const projects = await prisma.project.findMany({
+      where: { isDeleted: false },
       select: {
         year: true,
         field: true
@@ -145,9 +151,10 @@ const getProjectsByYear = async (req, res) => {
 // Get field distribution
 const getFieldDistribution = async (req, res) => {
   try {
-    // Get count of projects by field
+    // Get count of projects by field (only non-deleted)
     const fieldCounts = await prisma.project.groupBy({
       by: ['field'],
+      where: { isDeleted: false },
       _count: {
         field: true
       }
@@ -201,7 +208,10 @@ const getTopSavedProjects = async (req, res) => {
     const projectsWithDetails = await Promise.all(
       topProjects.map(async (item) => {
         const project = await prisma.project.findUnique({
-          where: { id: item.projectId },
+          where: { 
+            id: item.projectId,
+            isDeleted: false
+          },
           select: {
             id: true,
             title: true,

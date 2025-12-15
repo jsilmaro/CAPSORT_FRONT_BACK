@@ -25,6 +25,8 @@
     "clean:projects": "node scripts/clean-projects-data.js",
     "check:db": "node scripts/check-database-state.js",
     "check:duplicates": "node scripts/check-duplicates.js",
+    "test:analytics": "node scripts/test-analytics.js",
+    "seed:analytics": "node scripts/seed-analytics-data.js",
     "validate:env": "node scripts/validate-env.js"
   },
   "keywords": [
